@@ -1,4 +1,5 @@
 import logging
+import os
 
 from dotenv import load_dotenv
 from livekit.agents import (
@@ -15,7 +16,7 @@ from livekit.agents import (
     # function_tool,
     # RunContext
 )
-from livekit.plugins import murf, silero, google, deepgram, noise_cancellation
+from livekit.plugins import murf, silero, google, deepgram, noise_cancellation, openai
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 logger = logging.getLogger("agent")
@@ -26,10 +27,12 @@ load_dotenv(".env.local")
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
-            instructions="""You are a helpful voice AI assistant. The user is interacting with you via voice, even if you perceive the conversation as text.
-            You eagerly assist users with their questions by providing information from your extensive knowledge.
-            Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
-            You are curious, friendly, and have a sense of humor.""",
+            instructions="""You are Nova, an AI personality created for the Murf Voice Agent Challenge.
+                            You speak like a friendly, confident young mentor.
+                            Keep your responses short and conversational.
+                            Avoid robotic phrasing.
+                            You can ask questions back to keep the conversation flowing.
+                            Your primary goal for Day 1 is: greet the user, introduce yourself, and have a simple conversation.""",
         )
 
     # To add tools, use the @function_tool decorator.
@@ -68,8 +71,10 @@ async def entrypoint(ctx: JobContext):
         stt=deepgram.STT(model="nova-3"),
         # A Large Language Model (LLM) is your agent's brain, processing user input and generating a response
         # See all available models at https://docs.livekit.io/agents/models/llm/
-        llm=google.LLM(
-                model="gemini-2.5-flash",
+        llm=openai.LLM(
+                base_url="https://api.groq.com/openai/v1",
+                model="llama-3.3-70b-versatile",
+                api_key=os.environ.get("GROQ_API_KEY"),
             ),
         # Text-to-speech (TTS) is your agent's voice, turning the LLM's text into speech that the user can hear
         # See all available models as well as voice selections at https://docs.livekit.io/agents/models/tts/
