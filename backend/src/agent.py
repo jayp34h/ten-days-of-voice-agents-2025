@@ -1,5 +1,6 @@
 import logging
 import os
+import json
 
 from dotenv import load_dotenv
 from livekit.agents import (
@@ -13,8 +14,8 @@ from livekit.agents import (
     cli,
     metrics,
     tokenize,
-    # function_tool,
-    # RunContext
+    function_tool,
+    RunContext
 )
 from livekit.plugins import murf, silero, google, deepgram, noise_cancellation, openai
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
@@ -26,31 +27,76 @@ load_dotenv(".env.local")
 
 class Assistant(Agent):
     def __init__(self) -> None:
+        # Initialize order state
+        self.order_state = {
+            "drinkType": None,
+            "size": None,
+            "milk": None,
+            "extras": [],
+            "name": None
+        }
+        
         super().__init__(
-            instructions="""You are Nova, an AI personality created for the Murf Voice Agent Challenge.
-                            You speak like a friendly, confident young mentor.
-                            Keep your responses short and conversational.
-                            Avoid robotic phrasing.
-                            You can ask questions back to keep the conversation flowing.
-                            Your primary goal for Day 1 is: greet the user, introduce yourself, and have a simple conversation.""",
+            instructions="""You are a friendly barista at BrewBerry Café.
+                            Start by greeting customers warmly: 'Hi! Welcome to BrewBerry Café ☕. I'm your barista today. What can I get started for you?'
+                            
+                            Your job is to collect a complete coffee order by asking clarifying questions:
+                            1. First ask: What drink would they like? (espresso, latte, cappuccino, americano, etc.)
+                            2. Then ask: What size? (small, medium, large)
+                            3. Then ask: Any milk preference? (whole, skim, oat, almond, soy)
+                            4. Then ask: Would they like any extras? (sugar, chocolate, caramel, whipped cream)
+                            5. Finally ask: Can I get their name for the order?
+                            
+                            After collecting ALL information, use the save_order tool to save the order.
+                            Keep your responses short, friendly, and conversational.
+                            Ask ONE question at a time and wait for the customer's response.""",
         )
 
-    # To add tools, use the @function_tool decorator.
-    # Here's an example that adds a simple weather tool.
-    # You also have to add `from livekit.agents import function_tool, RunContext` to the top of this file
-    # @function_tool
-    # async def lookup_weather(self, context: RunContext, location: str):
-    #     """Use this tool to look up current weather information in the given location.
-    #
-    #     If the location is not supported by the weather service, the tool will indicate this. You must tell the user the location's weather is unavailable.
-    #
-    #     Args:
-    #         location: The location to look up weather information for (e.g. city name)
-    #     """
-    #
-    #     logger.info(f"Looking up weather for {location}")
-    #
-    #     return "sunny with a temperature of 70 degrees."
+    @function_tool
+    async def save_order(self, context: RunContext, drink_type: str, size: str, milk: str, extras: str, name: str):
+        """Save the completed coffee order to a JSON file.
+        
+        Use this tool when you have collected ALL order information from the customer.
+        
+        Args:
+            drink_type: The type of coffee drink (e.g., latte, cappuccino, espresso)
+            size: The size of the drink (small, medium, large)
+            milk: The type of milk (whole, skim, oat, almond, soy, none)
+            extras: Any extras requested (sugar, chocolate, caramel, whipped cream, or 'none')
+            name: The customer's name for the order
+        """
+        
+        # Update order state
+        self.order_state["drinkType"] = drink_type
+        self.order_state["size"] = size
+        self.order_state["milk"] = milk
+        self.order_state["extras"] = [e.strip() for e in extras.split(',')] if extras.lower() != 'none' else []
+        self.order_state["name"] = name
+        
+        # Add timestamp to order
+        from datetime import datetime
+        self.order_state["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Save to JSON file (append to list of orders)
+        order_file = "orders.json"
+        
+        # Read existing orders
+        try:
+            with open(order_file, "r") as f:
+                all_orders = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            all_orders = []
+        
+        # Append new order
+        all_orders.append(self.order_state.copy())
+        
+        # Save all orders
+        with open(order_file, "w") as f:
+            json.dump(all_orders, f, indent=4)
+        
+        logger.info(f"Order #{len(all_orders)} saved for {name}: {self.order_state}")
+        
+        return f"Perfect! I've got your order saved, {name}. Your {size} {drink_type} with {milk} milk will be ready shortly. Thank you for visiting BrewBerry Café!"
 
 
 def prewarm(proc: JobProcess):
@@ -79,7 +125,7 @@ async def entrypoint(ctx: JobContext):
         # Text-to-speech (TTS) is your agent's voice, turning the LLM's text into speech that the user can hear
         # See all available models as well as voice selections at https://docs.livekit.io/agents/models/tts/
         tts=murf.TTS(
-                voice="en-US-matthew", 
+                voice="en-US-terrell",  # Clear, friendly American male voice
                 style="Conversation",
                 tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
                 text_pacing=True

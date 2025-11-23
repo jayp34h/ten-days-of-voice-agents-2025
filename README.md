@@ -1,49 +1,86 @@
-# Day 1: Personal Voice Agent (Nova)
+# Day 2: BrewBerry Café - Coffee Order Barista Agent ☕
 
-Welcome to **Day 1** of the AI Voice Agents Challenge! Today's task is to build your own personal voice assistant named **Nova**.
+A friendly voice-enabled barista that takes complete coffee orders and saves them to a persistent database.
 
-## Tech Stack
+## 🎯 What This Agent Does
+
+The **BrewBerry Café Barista** is a conversational AI agent that:
+- Greets customers warmly
+- Collects complete coffee orders through natural conversation
+- Asks clarifying questions one at a time
+- Saves all orders with timestamps to a JSON file
+- Uses a clear male English voice (Terrell)
+
+## 🛠️ Tech Stack
 
 - **Framework**: [LiveKit Agents](https://docs.livekit.io/agents)
-- **LLM**: [Groq](https://groq.com) (Llama 3.3 70B Versatile) - *Fast inference!*
-- **TTS**: [Murf.ai](https://murf.ai) (Falcon) - *High-quality voice*
-- **STT**: [Deepgram](https://deepgram.com) (Nova-3) - *Accurate transcription*
+- **LLM**: [Groq](https://groq.com) (Llama 3.3 70B Versatile)
+- **TTS**: [Murf.ai](https://murf.ai) Falcon (Voice: en-US-terrell)
+- **STT**: [Deepgram](https://deepgram.com) Nova-3
 - **Frontend**: Next.js + LiveKit Components
 
-## Prerequisites
+## 📋 Order Collection Flow
 
+The barista asks these questions in order:
+
+1. **Drink Type**: "What drink would you like?" (latte, cappuccino, espresso, americano, etc.)
+2. **Size**: "What size?" (small, medium, large)
+3. **Milk**: "Any milk preference?" (whole, skim, oat, almond, soy)
+4. **Extras**: "Would you like any extras?" (sugar, chocolate, caramel, whipped cream)
+5. **Name**: "Can I get your name for the order?"
+
+After collecting ALL information, the order is automatically saved.
+
+## 💾 Order Storage
+
+Orders are saved to `backend/orders.json` as an array with timestamps:
+
+```json
+[
+    {
+        "drinkType": "latte",
+        "size": "medium",
+        "milk": "oat",
+        "extras": [],
+        "name": "Sarah",
+        "timestamp": "2025-11-23 14:30:15"
+    },
+    {
+        "drinkType": "cappuccino",
+        "size": "large",
+        "milk": "whole",
+        "extras": ["sugar", "chocolate"],
+        "name": "John",
+        "timestamp": "2025-11-23 14:35:42"
+    }
+]
+```
+
+## 🚀 Setup & Run
+
+### Prerequisites
 - Python 3.9+
 - Node.js 18+
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
 - [pnpm](https://pnpm.io/) (Node package manager)
-- LiveKit Server (Local or Cloud)
-
-## Setup Instructions
 
 ### 1. Backend Setup
 
 ```bash
 cd backend
 
-# Install dependencies (including livekit-plugins-openai for Groq)
+# Install dependencies
 uv sync
 
-# Configure environment
-cp .env.example .env.local
-```
+# Configure environment (.env.local)
+LIVEKIT_URL=ws://127.0.0.1:7880
+LIVEKIT_API_KEY=devkey
+LIVEKIT_API_SECRET=secret
+GROQ_API_KEY=your_groq_api_key
+MURF_API_KEY=your_murf_api_key
+DEEPGRAM_API_KEY=your_deepgram_api_key
 
-Edit `.env.local` and add your API keys:
-```bash
-LIVEKIT_URL=...
-LIVEKIT_API_KEY=...
-LIVEKIT_API_SECRET=...
-GROQ_API_KEY=...      # Required for Llama 3.3
-MURF_API_KEY=...      # Required for Falcon TTS
-DEEPGRAM_API_KEY=...  # Required for STT
-```
-
-**Start the Backend:**
-```bash
+# Start backend
 uv run python src/agent.py dev
 ```
 
@@ -55,37 +92,116 @@ cd frontend
 # Install dependencies
 pnpm install
 
-# Configure environment
-cp .env.example .env.local
-```
-
-Edit `.env.local` with your LiveKit credentials (same as backend).
-
-**Start the Frontend:**
-```bash
+# Configure environment (.env.local with same LiveKit credentials)
+# Start frontend
 pnpm dev
 ```
 
-### 3. Run LiveKit Server (Local Dev)
+### 3. Run LiveKit Server (Local)
 
-If you are not using LiveKit Cloud, run the local server:
 ```bash
 livekit-server --dev
 ```
 
-## Usage
+## 🎤 Testing the Agent
 
-1.  Ensure all 3 services are running (LiveKit Server, Backend, Frontend).
-2.  Open your browser to **[http://localhost:3000](http://localhost:3000)**.
-    > **IMPORTANT:** Do not use the network IP (e.g., `192.168.x.x`). Browsers block microphone access on non-secure (non-HTTPS) IP addresses. Always use `localhost`.
-3.  Click the microphone icon and say "Hello Nova!"
+1. Open **http://localhost:3000** (Use `localhost`, NOT IP address!)
+2. Click the microphone icon
+3. Have a conversation:
+   - **You**: "Hi!"
+   - **Barista**: "Hi! Welcome to BrewBerry Café ☕. I'm your barista today. What can I get started for you?"
+   - **You**: "I'd like a latte"
+   - **Barista**: "What size would you prefer?"
+   - **You**: "Medium"
+   - **Barista**: "Any milk preference?"
+   - **You**: "Oat milk please"
+   - **Barista**: "Would you like any extras like sugar, chocolate, or caramel?"
+   - **You**: "No extras"
+   - **Barista**: "Can I get your name for the order?"
+   - **You**: "Sarah"
+   - **Barista**: "Perfect! I've got your order saved, Sarah..."
 
-## Troubleshooting
+4. Check `backend/orders.json` to see your saved order!
 
--   **"Accessing media devices is available only in secure contexts"**: You are likely accessing the app via an IP address (e.g., `192.168.1.111:3000`). Switch to `http://localhost:3000`.
--   **Agent not responding**: Check the backend terminal. If you see `ImportError: cannot import name 'openai'`, run `uv sync` in the `backend` directory to install the missing dependency.
--   **Connection issues**: Ensure `LIVEKIT_URL` matches between backend, frontend, and your running server (usually `ws://127.0.0.1:7880` for local).
+## 📂 View Saved Orders
 
-## License
+```bash
+cd backend
+Get-Content orders.json  # Windows PowerShell
+# or
+cat orders.json  # Linux/Mac
+```
 
-MIT
+## 🎙️ Voice Settings
+
+**Current Voice**: Terrell (Clear, friendly American male)
+
+**To change voice**, edit `backend/src/agent.py` line 112:
+
+```python
+tts=murf.TTS(
+    voice="en-US-terrell",  # Change this
+    style="Conversation",
+    ...
+)
+```
+
+**Other male voice options**:
+- `en-US-clint` - Professional, warm
+- `en-GB-marcus` - Clear British male
+- `en-US-wayne` - Mature, confident
+
+After changing, restart backend with `Ctrl+C` then `uv run python src/agent.py dev`
+
+## 🔧 Troubleshooting
+
+### "Accessing media devices..." error
+- You're using an IP address instead of localhost
+- Solution: Use **http://localhost:3000**
+
+### Agent not responding
+- Check backend terminal for errors
+- Ensure all 3 services are running (LiveKit, Backend, Frontend)
+- Backend must show "registered worker"
+
+### Orders not saving
+- Check if `save_order` tool is being called (look for log: "Order #X saved...")
+- Ensure backend was restarted after code changes
+- File is `orders.json` (plural), not `order.json`
+
+## 🎯 Key Features Implemented
+
+✅ **Friendly Barista Persona** - Warm greeting and conversational style  
+✅ **Order State Management** - Tracks all order details  
+✅ **Sequential Questions** - Asks one question at a time  
+✅ **Function Tool** - `save_order` automatically called when complete  
+✅ **Persistent Storage** - All orders saved to `orders.json`  
+✅ **Timestamps** - Each order includes when it was placed  
+✅ **Male Voice** - Clear English voice (Terrell)
+
+## 📝 Code Structure
+
+```
+backend/
+├── src/
+│   └── agent.py          # Main agent with barista persona & save_order tool
+├── orders.json           # All saved orders (created after first order)
+└── .env.local           # API keys configuration
+
+frontend/
+├── app/                  # Next.js pages
+└── .env.local           # LiveKit credentials
+```
+
+## 🎓 What You Learned
+
+- Creating persona-driven voice agents
+- Managing conversational state
+- Implementing function tools in LiveKit Agents
+- Sequential question flow design
+- Persistent data storage in JSON
+- Customizing TTS voices
+
+---
+
+**Built for the AI Voice Agents Challenge** by [Murf.ai](https://murf.ai)

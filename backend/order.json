@@ -1,0 +1,9 @@
+{
+    "drinkType": "latte",
+    "size": "medium",
+    "milk": "soy milk",
+    "extras": [
+        "sugar"
+    ],
+    "name": "Customer"
+}
