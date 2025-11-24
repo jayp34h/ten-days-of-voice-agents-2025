@@ -1,70 +1,126 @@
-# Day 2: BrewBerry Café - Coffee Order Barista Agent ☕
+# Day 3: Health & Wellness Voice Companion 🌿
 
-A friendly voice-enabled barista that takes complete coffee orders and saves them to a persistent database.
+A supportive AI wellness companion that conducts daily emotional check-ins, remembers past conversations, and helps users set achievable daily goals.
 
 ## 🎯 What This Agent Does
 
-The **BrewBerry Café Barista** is a conversational AI agent that:
-- Greets customers warmly
-- Collects complete coffee orders through natural conversation
-- Asks clarifying questions one at a time
-- Saves all orders with timestamps to a JSON file
-- Uses a clear male English voice (Terrell)
+The **Health & Wellness Companion** provides:
+- **Daily emotional check-ins** with empathetic conversation
+- **Memory of past sessions** for continuity and personalization
+- **Practical, non-medical advice** tailored to user's state
+- **Goal-setting support** for daily intentions
+- **Persistent wellness tracking** saved to JSON
+
+### Core Principles
+✅ Supportive & empathetic (not clinical)  
+✅ One question at a time  
+✅ References past check-ins naturally  
+✅ Provides simple, practical suggestions  
+❌ No medical diagnosis or clinical terms
 
 ## 🛠️ Tech Stack
 
 - **Framework**: [LiveKit Agents](https://docs.livekit.io/agents)
 - **LLM**: [Groq](https://groq.com) (Llama 3.3 70B Versatile)
-- **TTS**: [Murf.ai](https://murf.ai) Falcon (Voice: en-US-terrell)
+- **TTS**: [Murf.ai](https://murf.ai) Falcon (Voice: en-US-matthew)
 - **STT**: [Deepgram](https://deepgram.com) Nova-3
 - **Frontend**: Next.js + LiveKit Components
+- **Data**: JSON-based wellness log with memory
 
-## 📋 Order Collection Flow
+## 📋 Check-In Flow (7 Steps)
 
-The barista asks these questions in order:
+The companion follows a structured conversation flow:
 
-1. **Drink Type**: "What drink would you like?" (latte, cappuccino, espresso, americano, etc.)
-2. **Size**: "What size?" (small, medium, large)
-3. **Milk**: "Any milk preference?" (whole, skim, oat, almond, soy)
-4. **Extras**: "Would you like any extras?" (sugar, chocolate, caramel, whipped cream)
-5. **Name**: "Can I get your name for the order?"
+1. **Greet Warmly**
+   - References past data if available
+   - Makes user feel remembered
 
-After collecting ALL information, the order is automatically saved.
+2. **Ask About Mood & Energy**
+   - "How are you feeling today?"
+   - "What's your energy like right now?"
+   - "Anything stressing you out?"
 
-## 💾 Order Storage
+3. **Ask About Goals/Intentions**
+   - "What are 1–3 things you'd like to get done today?"
+   - "Is there anything you want to do just for yourself?"
 
-Orders are saved to `backend/orders.json` as an array with timestamps:
+4. **Offer Simple, Practical Advice**
+   - "Maybe start with the easiest task first."
+   - "A 5–10 minute walk could help."
+   - Non-medical suggestions only
+
+5. **Recap & Confirm**
+   - "So today you're feeling [mood], your energy is [energy], and your goals are [goals]. Sound right?"
+
+6. **Save the Check-in**
+   - Uses `save_wellness_checkin` tool
+   - Persists to `wellness_log.json`
+
+7. **End with Encouragement**
+   - "You've got this! 💪"
+   - "Be kind to yourself today."
+
+## 💾 Data Structure
+
+### wellness_log.json
 
 ```json
 [
-    {
-        "drinkType": "latte",
-        "size": "medium",
-        "milk": "oat",
-        "extras": [],
-        "name": "Sarah",
-        "timestamp": "2025-11-23 14:30:15"
-    },
-    {
-        "drinkType": "cappuccino",
-        "size": "large",
-        "milk": "whole",
-        "extras": ["sugar", "chocolate"],
-        "name": "John",
-        "timestamp": "2025-11-23 14:35:42"
-    }
+  {
+    "timestamp": "2025-11-24T09:15:30+05:30",
+    "date": "2025-11-24",
+    "time": "09:15:30",
+    "mood": "stressed",
+    "energy": "low",
+    "stressors": "didn't sleep well, work deadline",
+    "objectives": [
+      "finish project report",
+      "get some exercise"
+    ],
+    "summary": "Mood: stressed, Energy: low"
+  },
+  {
+    "timestamp": "2025-11-24T14:22:15+05:30",
+    "date": "2025-11-24",
+    "time": "14:22:15",
+    "mood": "relieved",
+    "energy": "medium",
+    "stressors": "",
+    "objectives": [
+      "go for a walk",
+      "catch up on reading"
+    ],
+    "summary": "Mood: relieved, Energy: medium"
+  }
 ]
+```
+
+## 🧠 Memory & Personalization
+
+### How Memory Works
+
+1. **On Start**: Agent loads last 5 check-ins from `wellness_log.json`
+2. **Context Injection**: Adds memory to system prompt
+3. **Natural Reference**: Mentions past goals in greeting
+
+**Example Greeting with Memory:**
+> "Hey! Welcome back. Last time you mentioned you wanted to finish a project report. How did that go?"
+
+### Memory Context Example
+
+```python
+if self.past_checkins:
+    last_checkin = self.past_checkins[-1]
+    memory_context = f"""
+    MEMORY: Last check-in was on {last_checkin['date']} at {last_checkin['time']}.
+    They felt {last_checkin['mood']} with {last_checkin['energy']} energy.
+    Their goals were: {', '.join(last_checkin['objectives'])}.
+    """
 ```
 
 ## 🚀 Setup & Run
 
-### Prerequisites
-- Python 3.9+
-- Node.js 18+
-- [uv](https://docs.astral.sh/uv/) (Python package manager)
-- [pnpm](https://pnpm.io/) (Node package manager)
-
-### 1. Backend Setup
+### Backend Setup
 
 ```bash
 cd backend
@@ -72,32 +128,25 @@ cd backend
 # Install dependencies
 uv sync
 
-# Configure environment (.env.local)
+# Configure .env.local
 LIVEKIT_URL=ws://127.0.0.1:7880
-LIVEKIT_API_KEY=devkey
-LIVEKIT_API_SECRET=secret
-GROQ_API_KEY=your_groq_api_key
-MURF_API_KEY=your_murf_api_key
-DEEPGRAM_API_KEY=your_deepgram_api_key
+GROQ_API_KEY=your_key
+MURF_API_KEY=your_key
+DEEPGRAM_API_KEY=your_key
 
-# Start backend
+# Start agent
 uv run python src/agent.py dev
 ```
 
-### 2. Frontend Setup
+### Frontend Setup
 
 ```bash
 cd frontend
-
-# Install dependencies
 pnpm install
-
-# Configure environment (.env.local with same LiveKit credentials)
-# Start frontend
 pnpm dev
 ```
 
-### 3. Run LiveKit Server (Local)
+### LiveKit Server
 
 ```bash
 livekit-server --dev
@@ -105,103 +154,137 @@ livekit-server --dev
 
 ## 🎤 Testing the Agent
 
-1. Open **http://localhost:3000** (Use `localhost`, NOT IP address!)
-2. Click the microphone icon
-3. Have a conversation:
-   - **You**: "Hi!"
-   - **Barista**: "Hi! Welcome to BrewBerry Café ☕. I'm your barista today. What can I get started for you?"
-   - **You**: "I'd like a latte"
-   - **Barista**: "What size would you prefer?"
-   - **You**: "Medium"
-   - **Barista**: "Any milk preference?"
-   - **You**: "Oat milk please"
-   - **Barista**: "Would you like any extras like sugar, chocolate, or caramel?"
-   - **You**: "No extras"
-   - **Barista**: "Can I get your name for the order?"
-   - **You**: "Sarah"
-   - **Barista**: "Perfect! I've got your order saved, Sarah..."
+### Test in Voice Mode
 
-4. Check `backend/orders.json` to see your saved order!
+1. Open `http://localhost:3000`
+2. Click microphone icon
+3. Have a wellness check-in:
+   - **You**: "Hi"
+   - **Agent**: "Hi! How are you feeling today?"
+   - **You**: "I'm feeling a bit stressed"
+   - **Agent**: "I hear you. What's your energy like?"
+   - Continue the conversation...
 
-## 📂 View Saved Orders
+### Test in Console Mode
 
 ```bash
 cd backend
-Get-Content orders.json  # Windows PowerShell
+uv run python src/agent.py console
+```
+
+Great for quick testing without voice interface!
+
+## 📂 View Saved Check-ins
+
+```bash
+cd backend
+Get-Content wellness_log.json  # Windows
 # or
-cat orders.json  # Linux/Mac
+cat wellness_log.json  # Linux/Mac
 ```
 
-## 🎙️ Voice Settings
+## 🎨 Conversation Examples
 
-**Current Voice**: Terrell (Clear, friendly American male)
+### Example 1: First Check-in (No Memory)
 
-**To change voice**, edit `backend/src/agent.py` line 112:
-
-```python
-tts=murf.TTS(
-    voice="en-US-terrell",  # Change this
-    style="Conversation",
-    ...
-)
+```
+Agent: Hi! Welcome. I'm your wellness companion. How are you feeling today?
+You: I'm feeling stressed.
+Agent: I hear you. What's your energy like right now?
+You: Pretty low. I didn't sleep well.
+Agent: That's tough. What are 1–3 things you'd like to get done today?
+You: Finish a project report and maybe exercise.
+Agent: Those sound like good goals. Maybe start with the easiest task first.
+Agent: So you're feeling stressed, energy is low, and your goals are 
+       finishing the report and exercise. Does that sound right?
+You: Yes.
+Agent: Perfect! I've saved your check-in. You've got this! 💪
 ```
 
-**Other male voice options**:
-- `en-US-clint` - Professional, warm
-- `en-GB-marcus` - Clear British male
-- `en-US-wayne` - Mature, confident
+### Example 2: Second Check-in (With Memory)
 
-After changing, restart backend with `Ctrl+C` then `uv run python src/agent.py dev`
+```
+Agent: Hey! Welcome back. Last time you wanted to finish a project 
+       report and exercise. How did that go?
+You: I finished the report! But didn't exercise.
+Agent: That's great you got the report done! How are you feeling today?
+You: Much better. More relieved.
+Agent: Wonderful! What's your energy like today?
+You: Medium, better than yesterday.
+Agent: That's progress! Any goals for today?
+You: Go for that walk I missed, and catch up on reading.
+Agent: Nice! A 5–10 minute walk could help. Sound good?
+You: Perfect!
+Agent: *(saves)* Remember: walk, reading. You're doing great! 💪
+```
 
-## 🔧 Troubleshooting
+## 🎯 Key Features
 
-### "Accessing media devices..." error
-- You're using an IP address instead of localhost
-- Solution: Use **http://localhost:3000**
+### Core Functionality
+✅ **Empathetic Conversation** - Validates feelings naturally  
+✅ **Memory Integration** - References past check-ins  
+✅ **Practical Advice** - Simple, non-medical suggestions  
+✅ **Goal Tracking** - Helps set 1-3 daily objectives  
+✅ **Data Persistence** - All check-ins saved with timestamps
 
-### Agent not responding
-- Check backend terminal for errors
-- Ensure all 3 services are running (LiveKit, Backend, Frontend)
-- Backend must show "registered worker"
+### Function Tools
+1. **`save_wellness_checkin`** - Saves after user confirmation
+2. **Helper functions**: `load_wellness_log()`, `save_wellness_log()`, `create_log_entry()`
 
-### Orders not saving
-- Check if `save_order` tool is being called (look for log: "Order #X saved...")
-- Ensure backend was restarted after code changes
-- File is `orders.json` (plural), not `order.json`
+### What the Agent Avoids
+❌ Medical diagnosis ("You might be depressed")  
+❌ Clinical terms ("That sounds like burnout")  
+❌ Prescriptive commands ("You must exercise")  
+❌ Judgmental responses  
+❌ Multiple questions at once
 
-## 🎯 Key Features Implemented
-
-✅ **Friendly Barista Persona** - Warm greeting and conversational style  
-✅ **Order State Management** - Tracks all order details  
-✅ **Sequential Questions** - Asks one question at a time  
-✅ **Function Tool** - `save_order` automatically called when complete  
-✅ **Persistent Storage** - All orders saved to `orders.json`  
-✅ **Timestamps** - Each order includes when it was placed  
-✅ **Male Voice** - Clear English voice (Terrell)
-
-## 📝 Code Structure
+## 📁 Project Structure
 
 ```
 backend/
 ├── src/
-│   └── agent.py          # Main agent with barista persona & save_order tool
-├── orders.json           # All saved orders (created after first order)
-└── .env.local           # API keys configuration
+│   └── agent.py                    # Wellness companion implementation
+├── wellness_log.json               # Saved check-ins (auto-created)
+├── IMPLEMENTATION_SUMMARY.md       # Technical documentation
+├── CONVERSATION_EXAMPLES.md        # Example conversations
+└── .env.local                      # API keys
 
 frontend/
-├── app/                  # Next.js pages
-└── .env.local           # LiveKit credentials
+├── app/                            # Next.js pages
+└── .env.local                      # LiveKit credentials
 ```
 
-## 🎓 What You Learned
+## 🔧 Troubleshooting
 
-- Creating persona-driven voice agents
-- Managing conversational state
-- Implementing function tools in LiveKit Agents
-- Sequential question flow design
-- Persistent data storage in JSON
-- Customizing TTS voices
+### Agent not remembering past check-ins
+- Ensure `wellness_log.json` exists in backend directory
+- Check backend logs for "Loaded X past check-ins"
+- File should be created after first successful check-in
+
+### Check-in not saving
+- Look for "✓ Wellness check-in #X saved" in backend logs
+- Ensure user confirms before save (agent recaps first)
+- Check file permissions on `wellness_log.json`
+
+### Agent giving medical advice
+- This shouldn't happen - check system prompt
+- Agent is designed to avoid clinical/medical terms
+- If it does, please report the conversation
+
+## 🎓 What You Learned (Day 3)
+
+- **State management** with memory across sessions
+- **Function tools** for data persistence
+- **Conversational AI** with empathetic design
+- **JSON data handling** for wellness tracking
+- **Context injection** for personalized greetings
+- **Helper functions** for code organization
+
+## 📝 Additional Resources
+
+- [IMPLEMENTATION_SUMMARY.md](backend/IMPLEMENTATION_SUMMARY.md) - Complete technical details
+- [CONVERSATION_EXAMPLES.md](backend/CONVERSATION_EXAMPLES.md) - More conversation flows
 
 ---
 
-**Built for the AI Voice Agents Challenge** by [Murf.ai](https://murf.ai)
+**Built for the AI Voice Agents Challenge - Day 3** by [Murf.ai](https://murf.ai)
